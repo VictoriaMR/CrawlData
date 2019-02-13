@@ -24,7 +24,6 @@ return [
         //数据库链接集合
         'master' => $aDatabase,
         'default' => array_merge($aDatabase, ['database' => $webSite.$aConfig['version']]),
-        'data'=>array_merge($aDatabase, ['database' => 'fac_fmecat']),
     ],
     'robot' => [
         'version' => $aConfig['version'],
