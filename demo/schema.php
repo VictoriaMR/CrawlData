@@ -90,7 +90,6 @@ class Schema
             echo $sTable." has created!".PHP_EOL;
             $createTable = true;
         }
-        return;
         if ($createTable)
         {
             echo "create Table ok !!".PHP_EOL;
