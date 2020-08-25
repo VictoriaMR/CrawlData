@@ -1,5 +1,5 @@
 <?php
 return [
     'storage' => 'D:/Catch',
-    'version' => '201812',
+    'version' => date('Y', time()),
 ];
