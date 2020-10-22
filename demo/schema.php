@@ -22,7 +22,6 @@ class Schema
         $this->oCapsule = new Capsule;
         // 设置数据库链接 确认链接在
         $this->oCapsule->addConnection($this->aCapsule['master'], 'master');
-        $this->oCapsule->addConnection($this->aCapsule['data'], 'data');
 
         // 设置数据库事件
         $this->oCapsule->setEventDispatcher(new Illuminate\Events\Dispatcher(new Illuminate\Container\Container));
@@ -71,13 +70,11 @@ class Schema
      */
     protected function createTables()
     {
-        $createTable = false;
         //添加数据表
         $sTable = 'demo_table';
         if (!Capsule::schema()->hasTable($sTable))
         {
             Capsule::schema()->create($sTable, function (Blueprint $oTable) {
-
                 //自增id
                 $oTable->increments('id');
                 //char
@@ -88,13 +85,10 @@ class Schema
                 $oTable->integer('number')->default(0)->index();
             });
             echo $sTable." has created!".PHP_EOL;
-            $createTable = true;
         }
-        if ($createTable)
-        {
-            echo "create Table ok !!".PHP_EOL;
-        }
-        
+
+
+        echo "create Table ok !!".PHP_EOL;
         return true;
     }
 }

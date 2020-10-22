@@ -34,6 +34,8 @@ class Queue
      */
     public function add($sQueue, $sValue)
     {
+        exit('1');
+        dd($sQueue, $sValue);
         if (!$sQueue || !$sValue) {
             return false;
         }
