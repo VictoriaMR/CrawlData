@@ -1,20 +1,21 @@
 <?php
-require_once '../app.php';
+require '../app.php';
 define('APP_PATH', strtr(__DIR__, '\\', '/').'/');
 if (is_file(APP_PATH.'config.php')) {
-	$config = require_once APP_PATH.'config.php';
+	$config = require APP_PATH.'config.php';
 }
+exit('APP_PATH');
 if (empty($config)) {
 	exit('set config first');
 }
 if (is_file(APP_PATH.'schema.php')) {
-	require_once APP_PATH.'schema.php';
+	require APP_PATH.'schema.php';
 	// 创库
 	$oScheme = new Schema($config['database']);
 	$oScheme->createDatabase();
 }
 if (is_file(APP_PATH.'robot.php')) {
-	require_once APP_PATH.'robot.php';
+	require APP_PATH.'robot.php';
 	$oRobot = new Robot($config['robot']);
 }
 if (empty($oRobot)) {

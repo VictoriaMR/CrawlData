@@ -2,7 +2,6 @@
 //基础文件
 require_once './init.php';
 
-exit('123123');
 foreach ($aQueue as $sQueue)
 {
     vv($oQueue->get($sQueue));
