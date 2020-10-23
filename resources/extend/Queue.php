@@ -6,9 +6,9 @@ namespace Huluo\Extend;
  */
 class Queue
 {
-    public $sRobot;
-    public $sQueue;
-    public $aQueue;
+    protected $sRobot;
+    protected $sQueue;
+    protected $aQueue = [];
 
     /**
      * 初始进程
@@ -18,6 +18,12 @@ class Queue
         $this->sRobot = $sRobot;
         $this->sQueue = __DIR__ . '/cache/queue.php';
         existsOrCreate($this->sQueue);
+        if (is_file($this->sQueue)) {
+            $this->aQueue = require $this->sQueue;
+            if (!is_array($this->aQueue)) {
+                $this->aQueue = [];
+            }
+        }
     }
 
     /**
@@ -25,8 +31,7 @@ class Queue
      */
     public function get($sQueue)
     {
-        $this->aQueue = is_file($this->sQueue) ? require $this->sQueue : [];
-        return isset($this->aQueue[$this->sRobot][$sQueue]) ? $this->aQueue[$this->sRobot][$sQueue] : [];
+        return $this->aQueue[$this->sRobot][$sQueue] ?? '';
     }
 
     /**
@@ -34,14 +39,11 @@ class Queue
      */
     public function add($sQueue, $sValue)
     {
-        exit('1');
-        dd($sQueue, $sValue);
         if (!$sQueue || !$sValue) {
             return false;
         }
 
         // 值存在的时候不更新
-        $this->aQueue = is_file($this->sQueue) ? require $this->sQueue : [];
         if (isset($this->aQueue[$this->sRobot][$sQueue]) && ($this->aQueue[$this->sRobot][$sQueue] == $sValue)) {
             return true;
         }

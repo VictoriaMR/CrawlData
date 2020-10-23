@@ -1,2 +1,3 @@
 resources/vendor
-./composer.lock
+resources/composer.lock
+resources/extend/cache

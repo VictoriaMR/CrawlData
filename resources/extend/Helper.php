@@ -86,8 +86,8 @@ if (!function_exists('dd'))
             print_r($value);
             echo PHP_EOL;
         }
+        exit();
     }
-    exit();
 }
 
 if (!function_exists('vv'))
@@ -97,6 +97,6 @@ if (!function_exists('vv'))
             var_dump($value);
             echo PHP_EOL;
         }
+        exit();
     }
-    exit();
 }
