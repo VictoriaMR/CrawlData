@@ -8,5 +8,8 @@ foreach ($aQueue as $sQueue)
     }
     $sResult = $oRobot->$sQueue();
     // 完成步骤记录进程
-    $sResult ? $oQueue->add($sQueue, 'ok') : dd();
+    if ($sResult) {
+    	$oQueue->add($sQueue, 'ok');
+    }
 }
+dd('end');

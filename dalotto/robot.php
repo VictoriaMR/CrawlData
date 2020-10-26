@@ -17,7 +17,7 @@ class Robot
     {
     	// setting
         $this->aConfig = $aConfig;
-        $this->url = 'https://www.taobao.com/';
+        $this->url = 'https://webapi.sporttery.cn/gateway/lottery/getHistoryPageListV1.qry?gameNo=85&provinceId=0&pageSize=30&isVerify=1&pageNo=';
 
         //实例化爬取线程
     	$this->oClient = new Client([
@@ -28,42 +28,124 @@ class Robot
     public function sync()
     {
         echo __FUNCTION__.' start !!!'.PHP_EOL;
+        $i = 1;
+        $lastNo = Capsule::table('lottery')->max('qishu');
+        $check = false;
+        $keyName = ['num1', 'num2', 'num3', 'num4', 'num5', 'num6', 'num7'];
+        while (!$check) {
+            try {
+                $oGuzzle = $this->oClient->get($this->url.$i);
+                if (200 == $oGuzzle->getStatusCode()) {
+                    $sGuzzle = $oGuzzle->getBody()->getContents();
+                    if (!empty($sGuzzle)) {
+                        $sGuzzle = json_decode($sGuzzle, true);
+                        if (isset($sGuzzle['value'])) {
+                            if (empty($sGuzzle['value']['list'])) {
+                                $check = true;
+                                break;
+                            }
+                            foreach ($sGuzzle['value']['list'] as $key => $value) {
+                                $qishu = $value['lotteryDrawNum'];
+                                if ($qishu == $lastNo) {
+                                    echo '无需更新'.PHP_EOL;
+                                    return false;
+                                }
+                                $lastNo = $qishu;
+                                $valueNum = explode(' ', $value['lotteryDrawResult']);
+                                $data = array_combine($keyName, $valueNum);
+                                $data['qishu'] = $qishu;
+                                Capsule::table('lottery')->insert($data);
+                            }
+                        }
+                    }
+                } else {
+                    echo 'network fail!!'.PHP_EOL;
+                }
+                $i ++;
+            } catch (\GuzzleHttp\Exception\ConnectException $e) {
+                echo 'connection error'.PHP_EOL;
+            }
+        }
+        return false;
+    }
 
-        $sFile = sprintf('%s/%s/%s.html', $this->aConfig['storage'], __FUNCTION__, __FUNCTION__);
-        for ($sRun = 0; $sRun < 9; $sRun ++)
-        { 
-            if (!is_file($sFile))
-            {
-                try
-                {
-                    $oGuzzle = $this->oClient->get($this->url);
-                    $this->oCookie = new \GuzzleHttp\Cookie\CookieJar();
-                    if (200 == $oGuzzle->getStatusCode())
-                    {
-                        $sGuzzle = $oGuzzle->getBody()->getContents();
-                        existsOrCreate($sFile);
-                        file_put_contents($sFile, $sGuzzle);
-                        echo $sFile.' downloaded !!'.PHP_EOL;exit;
-                    }else
-                    {
-                        echo 'file download fail!!'.PHP_EOL;
-                    } 
-                } catch (\GuzzleHttp\Exception\ConnectException $e) {
-                    echo 'connection error'.PHP_EOL;
-                } catch (\GuzzleHttp\Exception\ClientException $e) {
-                    echo 'guzzle error'.PHP_EOL;
-                } 
+    public function getNumber()
+    {
+        echo __FUNCTION__.' start !!!'.PHP_EOL;
+        $keyName = ['num1', 'num2', 'num3', 'num4', 'num5', 'num6', 'num7'];
+        $data = Capsule::table('lottery')->select($keyName)->get()->toArray();
+        $data1 = array_count_values(array_column($data, 'num1'));
+        $data2 = array_count_values(array_column($data, 'num2'));
+        $data3 = array_count_values(array_column($data, 'num3'));
+        $data4 = array_count_values(array_column($data, 'num4'));
+        $data5 = array_count_values(array_column($data, 'num5'));
+        $data6 = array_count_values(array_column($data, 'num6'));
+        $data7 = array_count_values(array_column($data, 'num7'));
+        asort($data1);
+        asort($data2);
+        asort($data3);
+        asort($data4);
+        asort($data5);
+        asort($data6);
+        asort($data7);
+        $gold = (sqrt(5) - 1) / 2;
+        $result = [];
+        $data = [
+            $data1,
+            $data2,
+            $data3,
+            $data4,
+            $data5,
+            $data6,
+            $data7,
+        ];
+        foreach ($data as $key => $value) {
+            foreach ($value as $k => $v) {
+                if ($v <= 10) {
+                    unset($data[$key][$k]);
+                }
             }
         }
-        //解析HTML文件
-        if (is_file($sFile))
-        {
-            if ($oHtml = HtmlDomParser::str_get_html(file_get_contents($sFile)))
-            {
-                // $str = $oHtml->find('.qrcode-text',0)->plaintext;
-                // echo trim($str);
+        foreach ($data as $key => $value) {
+            $count = count($value);
+            $num = $count * $gold;
+            $tempstr = 'data'.($key + 1);
+            $$tempstr = [];
+            $$tempstr[] = array_key_last($value);
+            $num = ceil($num);
+            $i = 0;
+            foreach ($value as $k => $v) {
+                $i++;
+                if ($i == $num || $i == ($num + 1)) {
+                    $$tempstr[] = $k;
+                }
+            }
+            $i = 0;
+            arsort($value);
+            foreach ($value as $k => $v) {
+                $i++;
+                if ($i == $num || $i == ($num + 1)) {
+                    $$tempstr[] = $k;
+                }
             }
         }
-        return true;
+        $data = [
+            $data1,
+            $data2,
+            $data3,
+            $data4,
+            $data5,
+            $data6,
+            $data7,
+        ];
+        $i = 0;
+        while ( $i <= 4) {
+            foreach ($data as $key => $value) {
+                echo $value[$i].' ';
+            }
+            $i ++;
+            echo PHP_EOL;
+        }
+        return false;
     }
 }

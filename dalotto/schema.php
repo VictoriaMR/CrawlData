@@ -71,22 +71,24 @@ class Schema
     protected function createTables()
     {
         //添加数据表
-        $sTable = 'demo_table';
+        $sTable = 'lottery';
         if (!Capsule::schema()->hasTable($sTable))
         {
             Capsule::schema()->create($sTable, function (Blueprint $oTable) {
                 //自增id
                 $oTable->increments('id');
                 //char
-                $oTable->char('name', 255)->default('');
-                //varchar
-                $oTable->string('info',255)->default('')->index();
-                //int
-                $oTable->integer('number')->default(0)->index();
+                $oTable->char('num1', 3)->default('');
+                $oTable->char('num2', 3)->default('');
+                $oTable->char('num3', 3)->default('');
+                $oTable->char('num4', 3)->default('');
+                $oTable->char('num5', 3)->default('');
+                $oTable->char('num6', 3)->default('');
+                $oTable->char('num7', 3)->default('');
+                $oTable->char('qishu', 6)->default('')->unique();
             });
             echo $sTable." has created!".PHP_EOL;
         }
-
 
         echo "create Table ok !!".PHP_EOL;
         return true;

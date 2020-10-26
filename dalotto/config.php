@@ -1,7 +1,7 @@
 <?php
 $aConfig = require_once ROOT_PATH . '/resources/common.config.php';
 //数据建表名称 小写
-$webSite = 'dalotto';
+$webSite = 'sporttery';
 return [
     'database' => [
         //数据库链接集合
