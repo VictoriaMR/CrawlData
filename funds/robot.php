@@ -90,7 +90,7 @@ class Robot
                         $response = $response->getBody()->getContents();
                         $response = trim(trim($response, 'jsonpgz('), ');');
                         if (!empty($response)) {
-                            $sFile = $downloadArr[$index]['file'];
+                            $sFile = $downloadArr[$index]['file'] ?? '';
                             existsOrCreate($sFile);
                             file_put_contents($sFile, $response);
                             // echo $sFile.' downloaded !!'.PHP_EOL;
@@ -108,6 +108,7 @@ class Robot
             {
                 if (is_file($value['file'])) unset($downloadArr[$key]);
             }
+            sort($downloadArr);
             $timecount++;
         }
         return true;
