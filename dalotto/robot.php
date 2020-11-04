@@ -50,7 +50,6 @@ class Robot
                                     echo '无需更新'.PHP_EOL;
                                     return false;
                                 }
-                                $lastNo = $qishu;
                                 $valueNum = explode(' ', $value['lotteryDrawResult']);
                                 $data = array_combine($keyName, $valueNum);
                                 $data['qishu'] = $qishu;
@@ -99,19 +98,20 @@ class Robot
             $data6,
             $data7,
         ];
-        foreach ($data as $key => $value) {
-            foreach ($value as $k => $v) {
-                if ($v <= 10) {
-                    unset($data[$key][$k]);
-                }
-            }
-        }
+        // foreach ($data as $key => $value) {
+        //     foreach ($value as $k => $v) {
+        //         if ($v <= 10) {
+        //             unset($data[$key][$k]);
+        //         }
+        //     }
+        // }
         foreach ($data as $key => $value) {
             $count = count($value);
             $num = $count * $gold;
             $tempstr = 'data'.($key + 1);
             $$tempstr = [];
-            $$tempstr[] = array_key_last($value);
+            $tmpArr = array_keys($value);
+            $$tempstr[] = end($tmpArr);
             $num = ceil($num);
             $i = 0;
             foreach ($value as $k => $v) {
