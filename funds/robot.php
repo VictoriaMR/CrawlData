@@ -90,10 +90,15 @@ class Robot
                         $response = $response->getBody()->getContents();
                         $response = trim(trim($response, 'jsonpgz('), ');');
                         if (!empty($response)) {
-                            $sFile = $downloadArr[$index]['file'] ?? '';
-                            existsOrCreate($sFile);
-                            file_put_contents($sFile, $response);
-                            // echo $sFile.' downloaded !!'.PHP_EOL;
+                            $tempArr = json_decode($response, true);
+                            if (!empty($tempArr)) {
+                                if (strtotime($tempArr['gztime'].':00') > strtotime(date('Y-m-d').' 00:00:00')) {
+                                    $sFile = $downloadArr[$index]['file'] ?? '';
+                                    existsOrCreate($sFile);
+                                    file_put_contents($sFile, $response);
+                                    // echo $sFile.' downloaded !!'.PHP_EOL;
+                                }
+                            }
                         }
                     }
                 },
