@@ -24,6 +24,7 @@ class Robot
     	$this->oClient = new Client([
             'timeout' => 30,
         ]);
+        $this->insert = [];
     }
 
     public function down_file()
@@ -35,34 +36,25 @@ class Robot
         $downloadArr = [];
         foreach ($data as $value) {
             $sFile = sprintf('%s/%s/%s.json', $this->aConfig['storage'], date('Ymd'), $value);
-            if (!is_file($sFile)) {
-                $downloadArr[] = [
-                    'title' => $sFile,
-                    'url' => $this->url.$value.'.js?rt='.time(),
-                    'file' => $sFile,
-                ];
-            }
+            $downloadArr[] = [
+                'title' => $sFile,
+                'url' => $this->url.$value.'.js?rt='.time(),
+                'file' => $sFile,
+            ];
         }
-        $res = $this->getFile($downloadArr, 200, 3);
-        $insert = [];
-        foreach ($data as $value) {
-            $sFile = sprintf('%s/%s/%s.json', $this->aConfig['storage'], date('Ymd'), $value);
-            if (is_file($sFile)) {
-                $content = file_get_contents($sFile);
-                if (!empty($content)) {
-                    $content = json_decode($content, true);
-                    if (!empty($content)) {  
-                        $insert[] = $content;
-                    }
-                }
-            }
-        }
+        $this->getFile($downloadArr, 200);
+        echo 'downloaded used '.(time() - $time).' s'.PHP_EOL;
         Capsule::table('fundrecords')->where('gztime', '>', date('Y-m-d').' 00:00')->delete();
-        $insert = array_chunk($insert, 2999);
-        foreach ($insert as $key => $value) {
+        if (empty($this->insert)) {
+            return false;
+        }
+        echo count($this->insert).' 条数据待入库'.PHP_EOL;
+        $this->insert = array_chunk($this->insert, 2999);
+        foreach ($this->insert as $key => $value) {
             Capsule::table('fundrecords')->insert($value);
         }
-        echo 'USE '.(time() - $time).' s'.PHP_EOL;
+        echo 'insert DB USE '.(time() - $time).' s'.PHP_EOL;
+        $this->insert = null;
         return false;
     }
 
@@ -73,49 +65,34 @@ class Robot
         }
         //塞入异步进程
         $timecount = 0;
-        while (count($downloadArr) > 0 && $timecount < $time) {
-            if (empty($downloadArr)) {
-                return true;
-            }
-            $requests = function ($arr) {
-                foreach ($arr as $value) {
-                    yield new Request('GET', $value['url']);
-                }
-            };
-
-            $pool = new Pool($this->oClient, $requests($downloadArr), [
-                'concurrency' => $request,
-                'fulfilled' => function ($response, $index) use ($downloadArr) {
-                    if (200 == $response->getStatusCode()) {
-                        $response = $response->getBody()->getContents();
-                        $response = trim(trim($response, 'jsonpgz('), ');');
-                        if (!empty($response)) {
-                            $tempArr = json_decode($response, true);
-                            if (!empty($tempArr)) {
-                                if (strtotime($tempArr['gztime'].':00') > strtotime(date('Y-m-d').' 00:00:00')) {
-                                    $sFile = $downloadArr[$index]['file'] ?? '';
-                                    existsOrCreate($sFile);
-                                    file_put_contents($sFile, $response);
-                                    // echo $sFile.' downloaded !!'.PHP_EOL;
-                                }
-                            }
-                        }
-                    }
-                },
-                'rejected' => function ($reason, $index) use ($downloadArr) {
-                    // $sFile = $downloadArr[$index]['file'];
-                    // echo $sFile.' download FAILED !!'.PHP_EOL;
-                },
-            ]);
-            $promise = $pool->promise();
-            $promise->wait();
-            foreach ($downloadArr as $key => $value) 
-            {
-                if (is_file($value['file'])) unset($downloadArr[$key]);
-            }
-            sort($downloadArr);
-            $timecount++;
+        if (empty($downloadArr)) {
+            return true;
         }
+        $requests = function ($arr) {
+            foreach ($arr as $value) {
+                yield new Request('GET', $value['url']);
+            }
+        };
+
+        $pool = new Pool($this->oClient, $requests($downloadArr), [
+            'concurrency' => $request,
+            'fulfilled' => function ($response, $index) use ($downloadArr) {
+                if (200 == $response->getStatusCode()) {
+                    $response = $response->getBody()->getContents();
+                    $response = js_json(trim(trim($response, 'jsonpgz('), '));'));
+                    if (!empty($response)) {
+                        $this->insert[] = $response;
+                    }
+                    // echo $sFile.' downloaded !!'.PHP_EOL;
+                }
+            },
+            'rejected' => function ($reason, $index) use ($downloadArr) {
+                // $sFile = $downloadArr[$index]['file'];
+                // echo $sFile.' download FAILED !!'.PHP_EOL;
+            },
+        ]);
+        $promise = $pool->promise();
+        $promise->wait();
         return true;
     }
 }
