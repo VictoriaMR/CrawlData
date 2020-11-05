@@ -104,7 +104,6 @@ if (!function_exists('vv'))
 if (!function_exists('js_json'))
 {
     function js_json($string) {
-        if (is_array($string)) return $string;
         $string = json_decode($string, true); 
         return json_last_error() == JSON_ERROR_NONE ? $string : false;
     }
