@@ -31,18 +31,21 @@ class Robot
     {
         echo __FUNCTION__.' start !!!'.PHP_EOL;
         $time = time();
-        $data = Capsule::table('fundcodes')->select('code')->get()->toArray();
-        $data = array_unique(array_column($data, 'code'));
+        $data = Capsule::table('fundcodes')->select(['code', 'name'])->get()->toArray();
+        $data = array_column($data, 'name', 'code');
         $downloadArr = [];
-        foreach ($data as $value) {
-            $sFile = sprintf('%s/%s/%s.json', $this->aConfig['storage'], date('Ymd'), $value);
+        foreach ($data as $key => $value) {
+            $sFile = sprintf('%s/%s/%s.json', $this->aConfig['storage'], date('Ymd'), $key);
             $downloadArr[] = [
                 'title' => $sFile,
-                'url' => $this->url.$value.'.js?rt='.time(),
+                'url' => $this->url.$key.'.js?rt='.time(),
                 'file' => $sFile,
+                'name' => $value,
+                'code' => $key,
             ];
         }
         $this->getFile($downloadArr, 200);
+        $downloadArr = [];
         echo 'downloaded used '.(time() - $time).' s'.PHP_EOL;
         Capsule::table('fundrecords')->where('gztime', '>', date('Y-m-d').' 00:00')->delete();
         if (empty($this->insert)) {
@@ -54,7 +57,7 @@ class Robot
             Capsule::table('fundrecords')->insert($value);
         }
         echo 'insert DB USE '.(time() - $time).' s'.PHP_EOL;
-        $this->insert = null;
+        $this->insert = [];
         return false;
     }
 
@@ -87,8 +90,7 @@ class Robot
                 }
             },
             'rejected' => function ($reason, $index) use ($downloadArr) {
-                // $sFile = $downloadArr[$index]['file'];
-                // echo $sFile.' download FAILED !!'.PHP_EOL;
+                echo sprintf('%s %s 无返回值', $downloadArr[$index]['name'], $downloadArr[$index]['code']).PHP_EOL;
             },
         ]);
         $promise = $pool->promise();
