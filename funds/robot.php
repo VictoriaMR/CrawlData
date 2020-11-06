@@ -92,9 +92,6 @@ class Robot
                     }
                 },
                 'rejected' => function ($reason, $index) use ($downloadArr, $timecount, $time) {
-                    if ($timecount == $time) {
-                        echo sprintf('%s %s 无返回值', $downloadArr[$index]['name'], $downloadArr[$index]['code']).PHP_EOL;
-                    }
                 },
             ]);
             $promise = $pool->promise();
@@ -112,6 +109,9 @@ class Robot
             }
             $timecount ++;
             echo '尝试次数 '.$timecount.PHP_EOL;
+        }
+        foreach ($downloadArr as $key => $value) {
+            echo sprintf('%s %s 无返回值', $value['name'], $value['code']).PHP_EOL;
         }
         return true;
     }
