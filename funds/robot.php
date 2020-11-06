@@ -44,7 +44,7 @@ class Robot
                 'code' => $key,
             ];
         }
-        $this->getFile($downloadArr, 200);
+        $this->getFile($downloadArr, 200, 3);
         $downloadArr = [];
         echo 'downloaded used '.(time() - $time).' s'.PHP_EOL;
         Capsule::table('fundrecords')->where('gztime', '>', date('Y-m-d').' 00:00')->delete();
@@ -68,33 +68,51 @@ class Robot
         }
         //塞入异步进程
         $timecount = 0;
-        if (empty($downloadArr)) {
-            return true;
-        }
-        $requests = function ($arr) {
-            foreach ($arr as $value) {
-                yield new Request('GET', $value['url']);
+        $timecount = 0;
+        while ($timecount <= $time) {
+            if (empty($downloadArr)) {
+                return true;
             }
-        };
-
-        $pool = new Pool($this->oClient, $requests($downloadArr), [
-            'concurrency' => $request,
-            'fulfilled' => function ($response, $index) use ($downloadArr) {
-                if (200 == $response->getStatusCode()) {
-                    $response = $response->getBody()->getContents();
-                    $response = js_json(trim(trim($response, 'jsonpgz('), '));'));
-                    if (!empty($response)) {
-                        $this->insert[] = $response;
-                    }
-                    // echo $sFile.' downloaded !!'.PHP_EOL;
+            $requests = function ($arr) {
+                foreach ($arr as $value) {
+                    yield new Request('GET', $value['url']);
                 }
-            },
-            'rejected' => function ($reason, $index) use ($downloadArr) {
-                echo sprintf('%s %s 无返回值', $downloadArr[$index]['name'], $downloadArr[$index]['code']).PHP_EOL;
-            },
-        ]);
-        $promise = $pool->promise();
-        $promise->wait();
+            };
+
+            $pool = new Pool($this->oClient, $requests($downloadArr), [
+                'concurrency' => $request,
+                'fulfilled' => function ($response, $index) use ($downloadArr) {
+                    if (200 == $response->getStatusCode()) {
+                        $response = $response->getBody()->getContents();
+                        $response = js_json(trim(trim($response, 'jsonpgz('), '));'));
+                        if (!empty($response)) {
+                            $this->insert[$response['fundcode']] = $response;
+                        }
+                        // echo $sFile.' downloaded !!'.PHP_EOL;
+                    }
+                },
+                'rejected' => function ($reason, $index) use ($downloadArr, $timecount, $time) {
+                    if ($timecount == $time) {
+                        echo sprintf('%s %s 无返回值', $downloadArr[$index]['name'], $downloadArr[$index]['code']).PHP_EOL;
+                    }
+                },
+            ]);
+            $promise = $pool->promise();
+            $promise->wait();
+            if ($time > 1) {
+                $tempArr = [];
+                foreach ($downloadArr as $key => $value) {
+                    if (empty($this->insert[$value['code']])) {
+                        $tempArr[] = $value;
+                    }
+                }
+                $downloadArr = $tempArr;
+            } else {
+                break;
+            }
+            $timecount ++;
+            echo '尝试次数 '.$timecount.PHP_EOL;
+        }
         return true;
     }
 }
