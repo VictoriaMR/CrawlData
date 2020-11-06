@@ -91,7 +91,7 @@ class Robot
                         // echo $sFile.' downloaded !!'.PHP_EOL;
                     }
                 },
-                'rejected' => function ($reason, $index) use ($downloadArr, $timecount, $time) {
+                'rejected' => function ($reason, $index) use ($downloadArr) {
                 },
             ]);
             $promise = $pool->promise();
