@@ -1,6 +1,8 @@
 <?php
 //基础文件
-require './init.php';
+define('APP_PATH', strtr(__DIR__, '\\', '/'));
+define('BASE_PATH', substr(APP_PATH, 0, strrpos(APP_PATH, '/')));
+require APP_PATH.'/init.php';
 foreach ($aQueue as $sQueue)
 {
     if ($oQueue->get($sQueue) == 'ok') {
