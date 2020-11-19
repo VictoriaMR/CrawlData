@@ -98,13 +98,6 @@ class Robot
             $data6,
             $data7,
         ];
-        // foreach ($data as $key => $value) {
-        //     foreach ($value as $k => $v) {
-        //         if ($v <= 10) {
-        //             unset($data[$key][$k]);
-        //         }
-        //     }
-        // }
         foreach ($data as $key => $value) {
             $count = count($value);
             $num = $count * $gold;
@@ -113,15 +106,16 @@ class Robot
             $tmpArr = array_keys($value);
             $$tempstr[] = end($tmpArr);
             $num = ceil($num);
-            $i = 0;
+            $prev = 0;
             foreach ($value as $k => $v) {
-                $i++;
-                if ($i == $num || $i == ($num + 1)) {
+                if ($v > 100) {
                     $$tempstr[] = $k;
+                    $$tempstr[] = $prev;
+                    break;
                 }
+                $prev = $k;
             }
             $i = 0;
-            arsort($value);
             foreach ($value as $k => $v) {
                 $i++;
                 if ($i == $num || $i == ($num + 1)) {
@@ -140,11 +134,20 @@ class Robot
         ];
         $i = 0;
         while ( $i <= 4) {
+            $tempArr = [];
             foreach ($data as $key => $value) {
-                echo $value[$i].' ';
+                if ($key > 4) break;
+                $tempArr[] = $value[$i];
             }
+            sort($tempArr);
+            $temp2Arr = [];
+            foreach ($data as $key => $value) {
+                if ($key <= 4) continue;;
+                $temp2Arr[] = $value[$i];
+            }
+            sort($temp2Arr);
+            echo implode(' ', array_merge($tempArr, $temp2Arr)).PHP_EOL;
             $i ++;
-            echo PHP_EOL;
         }
         return false;
     }
