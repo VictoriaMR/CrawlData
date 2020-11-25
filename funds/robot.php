@@ -52,6 +52,10 @@ class Robot
             return false;
         }
         echo count($this->insert).' 条数据待入库'.PHP_EOL;
+        //更新净值
+        foreach ($this->insert as $key => $value) {
+        	Capsule::table('fundcodes')->where('code', $key)->update(['dwjz'=>$value['dwjz'], 'gsz'=>$value['gsz'], 'gszzl'=>$value['gszzl']]);
+        }
         $this->insert = array_chunk($this->insert, 2999);
         foreach ($this->insert as $key => $value) {
             Capsule::table('fundrecords')->insert($value);
