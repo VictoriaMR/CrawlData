@@ -99,6 +99,14 @@ class Robot
             $data7,
         ];
         foreach ($data as $key => $value) {
+            foreach ($value as $k => $v) {
+                if ($v < 10) {
+                    unset($data[$key][$k]);
+                }
+            }
+        }
+        // print_r($data);
+        foreach ($data as $key => $value) {
             $count = count($value);
             $num = $count * $gold;
             $tempstr = 'data'.($key + 1);
@@ -106,15 +114,6 @@ class Robot
             $tmpArr = array_keys($value);
             $$tempstr[] = end($tmpArr);
             $num = ceil($num);
-            $prev = 0;
-            foreach ($value as $k => $v) {
-                if ($v > 100) {
-                    $$tempstr[] = $k;
-                    $$tempstr[] = $prev;
-                    break;
-                }
-                $prev = $k;
-            }
             $i = 0;
             foreach ($value as $k => $v) {
                 $i++;
@@ -122,6 +121,15 @@ class Robot
                     $$tempstr[] = $k;
                 }
             }
+            arsort($value);
+            $i = 0;
+            foreach ($value as $k => $v) {
+                $i++;
+                if ($i == $num || $i == ($num + 1)) {
+                    $$tempstr[] = $k;
+                }
+            }
+            print_r($$tempstr);
         }
         $data = [
             $data1,

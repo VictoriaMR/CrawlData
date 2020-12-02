@@ -47,7 +47,7 @@ class Robot
         $this->getFile($downloadArr, 200, 3);
         $downloadArr = [];
         echo 'downloaded used '.(time() - $time).' s'.PHP_EOL;
-        Capsule::table('fundrecords')->where('gztime', '>', date('Y-m-d').' 00:00')->delete();
+        Capsule::table('fundrecords')->where('gztime', '>', date('Y-m-d'))->delete();
         if (empty($this->insert)) {
             return false;
         }
@@ -90,6 +90,7 @@ class Robot
                         $response = $response->getBody()->getContents();
                         $response = js_json(trim(trim($response, 'jsonpgz('), '));'));
                         if (!empty($response)) {
+                            $response['gztime'] = date('Y-m-d', strtotime($response['gztime']));
                             $this->insert[$response['fundcode']] = $response;
                         }
                         // echo $sFile.' downloaded !!'.PHP_EOL;
