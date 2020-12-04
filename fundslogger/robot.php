@@ -24,50 +24,56 @@ class Robot
     	$this->oClient = new Client([
             'timeout' => 30,
         ]);
-        $this->insert = [];
     }
 
     public function down_file()
     {
         echo __FUNCTION__.' start !!!'.PHP_EOL;
-        $time = time();
-        $data = Capsule::table('fundcodes')->select(['code', 'name'])->get()->toArray();
-        $data = array_column($data, 'name', 'code');
+        $codeArr = Capsule::table('fundcodes')->select(['code', 'name'])->get()->toArray();
+        $codeArr = array_column($codeArr, 'name', 'code');
+        $year = date('Y');
         $downloadArr = [];
-        foreach ($data as $key => $value) {
-            $sFile = sprintf('%s/%s/%s.json', $this->aConfig['storage'], date('Ymd'), $key);
-            $downloadArr[] = [
-                'title' => $sFile,
-                'url' => $this->url.$key.'.js?rt='.time(),
-                'file' => $sFile,
-                'name' => $value,
-                'code' => $key,
-            ];
-        }
-        $this->getFile($downloadArr, 200, 3);
-        $downloadArr = [];
-        echo 'downloaded used '.(time() - $time).' s'.PHP_EOL;
-        Capsule::table('fundrecords')->where('gztime', '>=', date('Y-m-d'))->delete();
-        Capsule::table('funds_logger')->where('gztime', '>=', date('Y-m-d'))->delete();
-        if (empty($this->insert)) {
-            return false;
-        }
-        echo count($this->insert).' 条数据待入库'.PHP_EOL;
-        //更新净值
-        foreach ($this->insert as $key => $value) {
-        	Capsule::table('fundcodes')->where('code', $key)->update(['dwjz'=>$value['dwjz'], 'gsz'=>$value['gsz'], 'gszzl'=>$value['gszzl']]);
-        }
-        $this->insert = array_chunk($this->insert, 2999);
-        foreach ($this->insert as $key => $value) {
-            Capsule::table('fundrecords')->insert($value);
-            foreach ($value as $k => $v) {
-                unset($value[$k]['dwjz']);
-                unset($value[$k]['jzrq']);
+        foreach ($codeArr as $key => $value) {
+            $sFile = sprintf('%s/%s.json', $this->aConfig['storage'], $key);
+            // http://fund.eastmoney.com/pingzhongdata/001186.js?v=20160518155842
+            if (!is_file($sFile)) {
+                $downloadArr[] = [
+                    'title' => $sFile,
+                    'url' => 'http://fund.eastmoney.com/pingzhongdata/'.$key.'.js?v='.time(),
+                    'file' => $sFile,
+                    'name' => $value,
+                    'code' => $key,
+                ];
             }
-            Capsule::table('funds_logger')->insert($value);
         }
-        echo 'insert DB USE '.(time() - $time).' s'.PHP_EOL;
-        $this->insert = [];
+        echo 'download file '.count($downloadArr).PHP_EOL;
+        $this->getFile($downloadArr, 100, 10);
+        $downloadArr = [];
+        Capsule::table('funds_logger')->truncate();
+        foreach ($codeArr as $key => $value) {
+            $sFile = sprintf('%s/%s.json', $this->aConfig['storage'], $key);
+            if (is_file($sFile)) {
+                $tempArr = json_decode(file_get_contents($sFile), true);
+                if (empty($tempArr)) continue;
+                foreach ($tempArr as $k => $v) {
+                    $insert[] = [
+                        'fundcode' => $key,
+                        'name' => $value,
+                        'gsz' => $v['y'],
+                        'gszzl' => $v['equityReturn'],
+                        'gztime' => date('Y-m-d', substr($v['x'], 0, -3)),
+                    ];
+                }
+                if (count($insert) > 6000) {
+                    Capsule::table('funds_logger')->insert($insert);
+                    $insert = [];
+                }
+            }
+        }
+        if (!empty($insert)) {
+            Capsule::table('funds_logger')->insert($insert);
+        }
+        $insert = [];
         return false;
     }
 
@@ -94,12 +100,13 @@ class Robot
                 'fulfilled' => function ($response, $index) use ($downloadArr) {
                     if (200 == $response->getStatusCode()) {
                         $response = $response->getBody()->getContents();
-                        $response = js_json(trim(trim($response, 'jsonpgz('), '));'));
                         if (!empty($response)) {
-                            $response['gztime'] = date('Y-m-d', strtotime($response['gztime']));
-                            $this->insert[$response['fundcode']] = $response;
+                            $response = substr($response, strpos($response, 'Data_netWorthTrend = '));
+                            $response = substr($response, 0, strpos($response, ']')).']';
+                            existsOrCreate($downloadArr[$index]['file']);
+                            file_put_contents($downloadArr[$index]['file'], trim($response, 'Data_netWorthTrend = '));
+                            echo $downloadArr[$index]['name'].' downloaded !!'.PHP_EOL;
                         }
-                        // echo $sFile.' downloaded !!'.PHP_EOL;
                     }
                 },
                 'rejected' => function ($reason, $index) use ($downloadArr) {
