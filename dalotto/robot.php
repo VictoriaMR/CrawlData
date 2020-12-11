@@ -32,6 +32,7 @@ class Robot
         $lastNo = Capsule::table('lottery')->max('qishu');
         $check = false;
         $keyName = ['num1', 'num2', 'num3', 'num4', 'num5', 'num6', 'num7'];
+        $insert = [];
         while (!$check) {
             try {
                 $oGuzzle = $this->oClient->get($this->url.$i);
@@ -46,14 +47,14 @@ class Robot
                             }
                             foreach ($sGuzzle['value']['list'] as $key => $value) {
                                 $qishu = $value['lotteryDrawNum'];
-                                if ($qishu == $lastNo) {
-                                    echo '无需更新'.PHP_EOL;
+                                if ($qishu <= $lastNo) {
+                                    // echo '无需更新'.PHP_EOL;
                                     return false;
                                 }
                                 $valueNum = explode(' ', $value['lotteryDrawResult']);
                                 $data = array_combine($keyName, $valueNum);
                                 $data['qishu'] = $qishu;
-                                Capsule::table('lottery')->insert($data);
+                                $insert[$qishu] = $data;
                             }
                         }
                     }
@@ -63,6 +64,13 @@ class Robot
                 $i ++;
             } catch (\GuzzleHttp\Exception\ConnectException $e) {
                 echo 'connection error'.PHP_EOL;
+            }
+        }
+        if (!empty($insert)) {
+            ksort($insert);
+            $insert = array_chunk($insert, 2000);
+            foreach ($insert as $key => $value) {
+                Capsule::table('lottery')->insert($value);
             }
         }
         return false;
@@ -87,7 +95,8 @@ class Robot
         asort($data5);
         asort($data6);
         asort($data7);
-        $gold = (sqrt(5) - 1) / 2;
+        // $rate = (sqrt(5) - 1) / 2;
+        $rate = 0.8;
         $result = [];
         $data = [
             $data1,
@@ -99,37 +108,30 @@ class Robot
             $data7,
         ];
         foreach ($data as $key => $value) {
-            foreach ($value as $k => $v) {
-                if ($v < 10) {
-                    unset($data[$key][$k]);
-                }
-            }
-        }
-        // print_r($data);
-        foreach ($data as $key => $value) {
-            $count = count($value);
-            $num = $count * $gold;
+            print_r($value);
             $tempstr = 'data'.($key + 1);
             $$tempstr = [];
             $tmpArr = array_keys($value);
             $$tempstr[] = end($tmpArr);
+            $count = count($value);
+            $num = $count * $rate;
             $num = ceil($num);
             $i = 0;
+            $prev = '';
+            foreach ($value as $k => $v) {
+                if ($v > 100) {
+                    $$tempstr[] = $k;
+                    $$tempstr[] = $prev;
+                    break;
+                }
+                $prev = $k;
+            }
             foreach ($value as $k => $v) {
                 $i++;
                 if ($i == $num || $i == ($num + 1)) {
                     $$tempstr[] = $k;
                 }
             }
-            arsort($value);
-            $i = 0;
-            foreach ($value as $k => $v) {
-                $i++;
-                if ($i == $num || $i == ($num + 1)) {
-                    $$tempstr[] = $k;
-                }
-            }
-            print_r($$tempstr);
         }
         $data = [
             $data1,
