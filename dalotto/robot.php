@@ -108,7 +108,6 @@ class Robot
             $data7,
         ];
         foreach ($data as $key => $value) {
-            print_r($value);
             $tempstr = 'data'.($key + 1);
             $$tempstr = [];
             $tmpArr = array_keys($value);
