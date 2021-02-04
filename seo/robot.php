@@ -46,7 +46,7 @@ class Robot
             exit();
         }
         //获取代理ip
-        $page = 10;
+        $page = 30;
         $ipArr = [];
         for ($i = 1; $i <= $page; $i ++) {
             try {
@@ -57,7 +57,7 @@ class Robot
                     {
                         foreach( $oHtml->find('#list',0)->find('tbody>tr') as $value) {
                             if ($value->find('td', 0) && $value->find('td', 1)) {
-                                $ipArr[] = 'http://'.trim($value->find('td', 0)->plaintext).':'.trim($value->find('td', 1)->plaintext);
+                                $ipArr[] = trim($value->find('td', 0)->plaintext).':'.trim($value->find('td', 1)->plaintext);
                             }
                         }
                     }
@@ -74,25 +74,37 @@ class Robot
         foreach ($ipArr as $key => $value) {
             $status = true;
             foreach ($url_arr as $uk => $ul) {
-                if (!$status) {
+                if ($this->curl_via_proxy($ul, $value)) {
+                    echo $value.' ==> '.$ul.' success'.PHP_EOL;
+                } else {
+                    echo $value.' failed'.PHP_EOL;
                     break;
-                }
-                try {
-                    $oGuzzle = $this->oClient->request('GET', $ul, ['proxy' => $value]);
-                    if (200 == $oGuzzle->getStatusCode()) {
-                        echo $value.' ==> '.$ul.' success'.PHP_EOL;
-                    }
-                }
-                catch (\GuzzleHttp\Exception\ConnectException $e) {
-                    echo $value.' failed'.PHP_EOL;
-                    $status = false;
-                }
-                catch (\GuzzleHttp\Exception\ClientException $e) {
-                    echo $value.' failed'.PHP_EOL;
-                    $status = false;
                 }
             }
         }
         exit();
+    }
+
+    public function curl_via_proxy($url,$proxy_ip, $method = 'GET')
+    {
+        $arr_ip = explode(':',$proxy_ip);
+
+        $ch = curl_init($url); //创建CURL对象  
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        curl_setopt($ch, CURLOPT_HEADER, 0); //返回头部  
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); //返回信息  
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10); //连接超时时间
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5); //读取超时时间
+        curl_setopt($ch, CURLOPT_PROXY, $arr_ip[0]); //代理服务器地址
+        curl_setopt($ch, CURLOPT_PROXYPORT, $arr_ip[1]); //代理服务器端口
+        $res = curl_exec($ch);
+        $curl_errno = curl_errno($ch);
+        if ($curl_errno) {
+            curl_close($ch);
+            return false;
+        }
+        curl_close($ch);
+        return true;
     }
 }
