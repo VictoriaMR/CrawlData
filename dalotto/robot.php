@@ -17,7 +17,7 @@ class Robot
     {
     	// setting
         $this->aConfig = $aConfig;
-        $this->url = 'https://webapi.sporttery.cn/gateway/lottery/getHistoryPageListV1.qry?gameNo=85&provinceId=0&pageSize=30&isVerify=1&pageNo=';
+        $this->url = 'https://www.js-lottery.com/PlayZone/ajaxLottoData';
 
         //实例化爬取线程
     	$this->oClient = new Client([
@@ -33,29 +33,37 @@ class Robot
         $check = false;
         $keyName = ['num1', 'num2', 'num3', 'num4', 'num5', 'num6', 'num7'];
         $insert = [];
+        $all_count = 0;
         while (!$check) {
             try {
-                $oGuzzle = $this->oClient->get($this->url.$i);
+                $oGuzzle = $this->oClient->post($this->url, ['form_params' => ['current_page' => $i, 'all_count' =>$all_count]]);
                 if (200 == $oGuzzle->getStatusCode()) {
+                    echo $i.'page downloaded'.PHP_EOL;
                     $sGuzzle = $oGuzzle->getBody()->getContents();
                     if (!empty($sGuzzle)) {
                         $sGuzzle = json_decode($sGuzzle, true);
-                        if (isset($sGuzzle['value'])) {
-                            if (empty($sGuzzle['value']['list'])) {
-                                $check = true;
-                                break;
-                            }
-                            foreach ($sGuzzle['value']['list'] as $key => $value) {
-                                $qishu = $value['lotteryDrawNum'];
+                        $all_count = $sGuzzle['all_count'] ?? 0;
+                        if (!empty($sGuzzle['items'])) {
+                            foreach ($sGuzzle['items'] as $key => $value) {
+                                $qishu = $value['num'];
                                 if ($qishu <= $lastNo) {
-                                    // echo '无需更新'.PHP_EOL;
+                                    echo '无需更新'.PHP_EOL;
                                     return false;
                                 }
-                                $valueNum = explode(' ', $value['lotteryDrawResult']);
-                                $data = array_combine($keyName, $valueNum);
+                                $data = [
+                                    'num1' => $value['one'],
+                                    'num2' => $value['two'],
+                                    'num3' => $value['three'],
+                                    'num4' => $value['four'],
+                                    'num5' => $value['five'],
+                                    'num6' => $value['six'],
+                                    'num7' => $value['seven'],
+                                 ];
                                 $data['qishu'] = $qishu;
                                 $insert[$qishu] = $data;
                             }
+                        } else {
+                            $check = true;
                         }
                     }
                 } else {
@@ -95,6 +103,14 @@ class Robot
         asort($data5);
         asort($data6);
         asort($data7);
+        print_r($data1);
+        print_r($data2);
+        print_r($data3);
+        print_r($data4);
+        print_r($data5);
+        print_r($data6);
+        print_r($data7);
+        die();
         // $rate = (sqrt(5) - 1) / 2;
         $rate = 0.8;
         $result = [];
