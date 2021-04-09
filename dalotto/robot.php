@@ -18,6 +18,7 @@ class Robot
     	// setting
         $this->aConfig = $aConfig;
         $this->url = 'https://www.js-lottery.com/PlayZone/ajaxLottoData';
+        $this->url = 'https://webapi.sporttery.cn/gateway/lottery/getHistoryPageListV1.qry?gameNo=85&provinceId=0&pageSize=50&pageNo=%s';
 
         //实例化爬取线程
     	$this->oClient = new Client([
@@ -33,37 +34,39 @@ class Robot
         $check = false;
         $keyName = ['num1', 'num2', 'num3', 'num4', 'num5', 'num6', 'num7'];
         $insert = [];
-        $all_count = 0;
+        $page = 0;
         while (!$check) {
             try {
-                $oGuzzle = $this->oClient->post($this->url, ['form_params' => ['current_page' => $i, 'all_count' =>$all_count]]);
+                $page ++;
+                $oGuzzle = $this->oClient->get(sprintf($this->url, $page));
                 if (200 == $oGuzzle->getStatusCode()) {
-                    echo $i.'page downloaded'.PHP_EOL;
                     $sGuzzle = $oGuzzle->getBody()->getContents();
                     if (!empty($sGuzzle)) {
                         $sGuzzle = json_decode($sGuzzle, true);
-                        $all_count = $sGuzzle['all_count'] ?? 0;
-                        if (!empty($sGuzzle['items'])) {
-                            foreach ($sGuzzle['items'] as $key => $value) {
-                                $qishu = $value['num'];
-                                if ($qishu <= $lastNo) {
-                                    echo '无需更新'.PHP_EOL;
-                                    return false;
-                                }
-                                $data = [
-                                    'num1' => $value['one'],
-                                    'num2' => $value['two'],
-                                    'num3' => $value['three'],
-                                    'num4' => $value['four'],
-                                    'num5' => $value['five'],
-                                    'num6' => $value['six'],
-                                    'num7' => $value['seven'],
-                                 ];
-                                $data['qishu'] = $qishu;
-                                $insert[$qishu] = $data;
-                            }
-                        } else {
+                        $list = $sGuzzle['value']['list'];
+                        if (empty($list) && $sGuzzle['success']) {
                             $check = true;
+                            break;
+                        }
+                        foreach ($list as $key => $value) {
+                            $qishu = $value['lotteryDrawNum'];
+                            if ($qishu <= $lastNo) {
+                                $check = true;
+                                break;
+                            }
+                            $arr = explode(' ', $value['lotteryDrawResult']);
+                            $data = [
+                                'num1' => $arr[0],
+                                'num2' => $arr[1],
+                                'num3' => $arr[2],
+                                'num4' => $arr[3],
+                                'num5' => $arr[4],
+                                'num6' => $arr[5],
+                                'num7' => $arr[6],
+                            ];
+                            $data['date'] = $value['lotteryDrawTime'];
+                            $data['qishu'] = $qishu;
+                            $insert[$qishu] = $data;
                         }
                     }
                 } else {

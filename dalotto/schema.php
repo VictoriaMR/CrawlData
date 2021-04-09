@@ -86,6 +86,7 @@ class Schema
                 $oTable->char('num6', 3)->default('');
                 $oTable->char('num7', 3)->default('');
                 $oTable->char('qishu', 6)->default('')->unique();
+                $oTable->char('date', 10)->default('')->unique();
             });
             echo $sTable." has created!".PHP_EOL;
         }
